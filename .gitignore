@@ -12,3 +12,4 @@ sites/*/private
 vendor
 composer.lock
 tmp
+error_log
