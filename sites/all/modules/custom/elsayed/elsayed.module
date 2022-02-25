@@ -1,0 +1,982 @@
+<?php
+
+/**
+ * @author Author "Mohamed Elsayed"
+ * @author Author Email "me@mohamedelsayed.net"
+ * @link http://www.mohamedelsayed.net
+ * @copyright Copyright (c) 2015 Programming by "http://www.mohamedelsayed.net"
+ */
+function elsayed_init() {
+    elsayed_update_node_language();
+    $GLOBALS['google_api_key'] = 'AIzaSyDGGlo0fNATzYKU761Fx-8VAIJDXu-b3QM';
+    elsayed_change_locale_custom_strings_all();
+    elsayed_redirect_www_to_non_www();
+}
+
+function elsayed_menu() {
+    $items['page_not_found'] = array(
+        'title' => 'Page not found',
+        'page callback' => 'elsayed_page_not_found_page',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    $items['financial_statement'] = array(
+        'title' => t('Financial Statements'),
+        'page callback' => 'elsayed_financial_statements',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    $items['contact-us'] = array(
+        'title' => t('Contact us'),
+        'page callback' => 'elsayed_contact_us',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    $items['contact-us-form'] = array(
+        'title' => t('Contact us'),
+        'page callback' => 'elsayed_contact_us_form',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    $items['albums'] = array(
+        'title' => t('Albums'),
+        'page callback' => 'elsayed_albums',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    $items['products'] = array(
+        'title' => t('Products'),
+        'page callback' => 'elsayed_products',
+        'page arguments' => array(),
+        'type' => MENU_CALLBACK,
+        'access arguments' => array('access content'),
+    );
+    return $items;
+}
+
+function elsayed_get_default_language() {
+    $default_language = 'ar';
+    return $default_language;
+}
+
+function elsayed_get_http_string() {
+    $http_string = "http://";
+    if (isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') {
+        $http_string = "https://";
+    }
+    return $http_string;
+}
+
+function elsayed_get_site_base_url() {
+    $http_host = $_SERVER['HTTP_HOST'];
+    $http_string = elsayed_get_http_string();
+    $base_url = '';
+    if (strpos($http_host, 'localhost') !== FALSE) {
+        $base_url = $http_string . $http_host . '/myworkspace/efic';
+    } else {
+        $base_url = $http_string . $http_host;
+    }
+    return $base_url;
+}
+
+function elsayed_get_languages() {
+    if (!isset($GLOBALS['languages'])) {
+        $field = field_info_field('field_language');
+        $languages = $field['settings']['allowed_values'];
+        $GLOBALS['languages'] = $languages;
+    } else {
+        $languages = $GLOBALS['languages'];
+    }
+    //$languages =  array('ar' => 'عربي', 'en' => 'English');
+    return $languages;
+}
+
+function elsayed_get_language_from_url() {
+    $sitelang = elsayed_get_default_language();
+    $http_string = elsayed_get_http_string();
+    $url = "$http_string$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+    $base_url_without_lang = elsayed_get_site_base_url();
+    $min_url = str_replace($base_url_without_lang, "", $url);
+    $min_url = trim($min_url, '/');
+    $codes = explode('/', $min_url);
+    $languages = elsayed_get_languages();
+    $flag = 0;
+    if (isset($codes[0])) {
+        if (array_key_exists($codes[0], $languages)) {
+            $sitelang = $codes[0];
+            $flag = 1;
+            $time = 0;
+            $host_names = explode(".", $_SERVER['HTTP_HOST']);
+            if (isset($host_names[count($host_names) - 2]) && isset($host_names[count($host_names) - 1])) {
+                $bottom_host_name = $host_names[count($host_names) - 2] . "." . $host_names[count($host_names) - 1];
+            } else {
+                $bottom_host_name = $_SERVER['HTTP_HOST'];
+            }
+            $domain = $bottom_host_name;
+            if ($domain == 'localhost') {
+                $domain = NULL;
+            }
+            $path = "/";
+            if (isset($_COOKIE['sitelang'])) {
+                if ($sitelang != $_COOKIE['sitelang']) {
+                    setcookie("sitelang", $sitelang, $time, $path, $domain);
+                }
+            } else {
+                setcookie("sitelang", $sitelang, $time, $path, $domain);
+            }
+        }
+    }
+    /* if (isset($_COOKIE['sitelang']) && $flag == 0) {
+      $sitelang = $_COOKIE['sitelang'];
+      } */
+    return $sitelang;
+}
+
+function elsayed_get_base_url_with_lang() {
+    $site_base_url = elsayed_get_site_base_url();
+    $sitelang = elsayed_get_language_from_url();
+    $result = $site_base_url;
+    if ($sitelang != '') {
+        $result = $site_base_url . '/' . $sitelang;
+    }
+    return $result;
+}
+
+function elsayed_page_not_found_page() {
+    $output = '';
+    return $output;
+}
+
+function elsayed_get_slider_widget($current_factory_id = '') {
+    $start = 0;
+    $limit = 10;
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'slider')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    $query->addMetaData('account', user_load(1));
+    //if(trim($current_factory_id) == ''){
+    $current_factory_id = elsayed_get_current_factory();
+    //}
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $query->range($start, $limit);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_news_bar() {
+    $start = 0;
+    $limit = 10;
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'article')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    $query->addMetaData('account', user_load(1));
+    $current_factory_id = elsayed_get_current_factory();
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $query->range($start, $limit);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_node_url_by_id($nid = 0) {
+    $node_url = '';
+    $base_url_with_lang = elsayed_get_base_url_with_lang();
+    if ($nid != 0) {
+        $alias = drupal_get_path_alias('node/' . $nid);
+        $node_url = $base_url_with_lang . '/' . $alias;
+    }
+    return $node_url;
+}
+
+function pr($data, $flag = '') {
+    echo "<pre>\n";
+    if ($flag == '') {
+        print_r($data);
+    } else {
+        print_r($data, true);
+    }
+    echo "</pre>\n";
+}
+
+function elsayed_get_financial_statements_years($limit = 0) {
+    $sitelang = elsayed_get_language_from_url();
+    $current_factory_id = elsayed_get_current_factory();
+    if ($current_factory_id > 0) {
+
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $current_factory_id = $main_factory->nid;
+    }
+    $items = db_query("SELECT DISTINCT y.field_year_value AS year_value
+                    FROM {node} n, {field_data_field_year} y, {field_data_field_factory} f, {field_data_field_language} l
+                    WHERE (n.nid = y.entity_id) AND (n.status = 1) AND (n.type = 'financial_statements')
+                    AND  (n.nid = f.entity_id) AND  (n.nid = l.entity_id)
+                    AND (l.field_language_value = '" . $sitelang . "')
+                    AND (f. field_factory_target_id = " . $current_factory_id . ")
+                    ORDER BY n.nid DESC", array())->fetchAll();
+    $years = array();
+    if (!empty($items)) {
+        $i = 0;
+        foreach ($items as $key => $item) {
+            $y = $item->year_value;
+            $year = date('Y', strtotime($y));
+            $years[] = $year;
+            $i++;
+            if ($limit > 0) {
+                if ($i >= $limit) {
+                    break;
+                }
+            }
+        }
+    }
+    rsort($years);
+    return $years;
+}
+
+function elsayed_financial_statements() {
+    $output = '';
+    return $output;
+}
+
+function elsayed_get_financial_statements($year, $current_factory_id = '', $home = 0) {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'financial_statements')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    if ($home == 0) {
+        $query->fieldCondition('field_year', 'value', $year . '-01-01 00:00:00', '=');
+    }
+    $query->addMetaData('account', user_load(1));
+    //if(trim($current_factory_id) == ''){
+    $current_factory_id = elsayed_get_current_factory();
+    //}
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_financial_statement_field_quarter($financial_statement) {
+    $field = field_info_field('field_quarter');
+    $allowed_values = $field['settings']['allowed_values'];
+    $field_data = field_get_items('node', $financial_statement, 'field_quarter');
+    return t($allowed_values[$field_data[0]['value']]);
+}
+
+function elsayed_contact_us() {
+    $output = '';
+    return $output;
+}
+
+function elsayed_contact_us_form() {
+    $base_url_with_lang = elsayed_get_base_url_with_lang();
+    if (isset($_POST)) {
+        if (!empty($_POST)) {
+            $name = '';
+            if (isset($_POST['name'])) {
+                $name = $_POST['name'];
+            }
+            $email = '';
+            if (isset($_POST['email'])) {
+                $email = $_POST['email'];
+            }
+            $subject = '';
+            if (isset($_POST['subject'])) {
+                $subject = $_POST['subject'];
+            }
+            $message = '';
+            if (isset($_POST['message'])) {
+                $message = $_POST['message'];
+            }
+            $emailTo = '';
+            $mailsubject = '';
+            if (isset($_POST['nid'])) {
+                $nid = $_POST['nid'];
+                $node = node_load($nid);
+                if (isset($node->field_to_email[LANGUAGE_NONE][0]['email'])) {
+                    $emailTo = $node->field_to_email[LANGUAGE_NONE][0]['email'];
+                    $mailsubject = $node->title; //.' form';
+                }
+            }
+            $tpl = file_get_contents(drupal_get_path('module', 'elsayed') . '/emails/contactus.html');
+            $html_message = str_replace(array('{{mailsubject}}', '{{name}}', '{{email}}', '{{subject}}', '{{message}}'), array($mailsubject, $name, $email, $subject, $message), $tpl);
+            $headers = "From: " . $name . " <" . $email . ">" . "\r\n";
+            $headers .= "Reply-To: " . strip_tags($email) . "\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            if ($emailTo != '') {
+                if (mail($emailTo, $subject, $html_message, $headers)) {
+                    echo t('Thank you for your message. We will get back to you the soonest.');
+                } else {
+                    echo t('There was a problem sending the Email. Please try again.');
+                }
+            }
+        }
+    }
+}
+
+function elsayed_albums() {
+    $output = '';
+    return $output;
+}
+
+function elsayed_products() {
+    $output = '';
+    return $output;
+}
+
+function elsayed_get_all_albums() {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'album')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    $query->addMetaData('account', user_load(1));
+    $current_factory_id = elsayed_get_current_factory();
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_update_node_language() {
+    db_query("UPDATE `node` SET `language` = '" . LANGUAGE_NONE . "' WHERE `node`.`language` != '" . LANGUAGE_NONE . "'");
+    db_query("UPDATE `url_alias` SET `language` = '" . LANGUAGE_NONE . "'  WHERE `url_alias`.`language` != '" . LANGUAGE_NONE . "'");
+}
+
+function elsayed_get_product_types() {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'product_type')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_products($product_type = 0, $home = 0, $current_factory_id = '', $limit = 0, $random = 0) {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'product')
+            ->propertyCondition('status', 1);
+    //->propertyOrderBy('created', 'DESC');
+    $query->addMetaData('account', user_load(1));
+    if ($random == 1) {
+        $query->addTag('random');
+    } else {
+        $query->propertyOrderBy('created', 'DESC');
+    }
+    if ($product_type != 0) {
+        $query->fieldCondition('field_product_type', 'target_id', $product_type, '=');
+    }
+    if ($home != 0) {
+        $query->fieldCondition('field_show_in_home', 'value', $home, '=');
+    }
+    //if(trim($current_factory_id) == ''){
+    $current_factory_id = elsayed_get_current_factory();
+    //}
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    if ($limit != 0) {
+        $start = 0;
+        $query->range($start, $limit);
+    }
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_node_field_value($field = '', $node) {
+    $languages = elsayed_get_languages();
+    $data = $node->$field;
+    if (isset($data[LANGUAGE_NONE][0]['value']) && trim($data[LANGUAGE_NONE][0]['value']) != '') {
+        return $data[LANGUAGE_NONE][0]['value'];
+    } else {
+        foreach ($languages as $key => $language) {
+            if (isset($data[$key][0]['value']) && trim($data[$key][0]['value']) != '') {
+                return $data[$key][0]['value'];
+            }
+        }
+    }
+    return '';
+}
+
+function elsayed_string_format_view($str = '', $val = 0) {
+    $data = '';
+    $str_without_tags = strip_tags($str);
+    $strArr = explode(" ", $str_without_tags);
+    if (count($strArr) > $val) {
+        for ($index = 0; $index < $val; $index++) {
+            $data .= $strArr[$index] . ' ';
+        }
+        $data .= '...';
+    } else {
+        $data .= $str;
+    }
+    return $data;
+}
+
+function elsayed_form_alter(&$form, &$form_state, $form_id) {
+    if (isset($form['#node']) && $form_id == 'financial_statements_node_form') {
+        $form['#validate'][] = 'elsayed_financial_statements_validate';
+    }
+    if (isset($form['#node']) && $form_id == 'financial_additions_node_form') {
+        $form['#validate'][] = 'elsayed_financial_additions_validate';
+    }
+    if (isset($form['#node']) && $form_id == 'page_node_form') {
+        $form['#validate'][] = 'elsayed_page_validate';
+    }
+    if (isset($form['#node']) && $form_id == 'contact_us_node_form') {
+        $form['#validate'][] = 'elsayed_contact_us_validate';
+    }
+}
+
+function elsayed_financial_statements_validate(&$form, &$form_state) {
+    $nid = 0;
+    if (isset($form_state['values']['nid'])) {
+        if ($form_state['values']['nid'] != '') {
+            $nid = $form_state['values']['nid'];
+        }
+    }
+    $field_quarter = '';
+    if (isset($form_state['input']['field_quarter'][LANGUAGE_NONE])) {
+        $field_quarter = $form_state['input']['field_quarter'][LANGUAGE_NONE];
+    }
+    $field_year = '';
+    if (isset($form_state['input']['field_year'][LANGUAGE_NONE][0]['value'])) {
+        $field_year = $form_state['input']['field_year'][LANGUAGE_NONE][0]['value']['year'];
+    }
+    $field_factory = '';
+    if (isset($form_state['input']['field_factory'][LANGUAGE_NONE])) {
+        $field_factory = $form_state['input']['field_factory'][LANGUAGE_NONE];
+    }
+    $field_language = '';
+    if (isset($form_state['input']['field_language'][LANGUAGE_NONE])) {
+        $field_language = $form_state['input']['field_language'][LANGUAGE_NONE];
+    }
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'financial_statements')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    if ($nid != 0) {
+        $query->propertyCondition('nid', $nid, '<>');
+    }
+    if ($field_year != '') {
+        $query->fieldCondition('field_year', 'value', $field_year . '-01-01 00:00:00', '=');
+    }
+    if ($field_quarter != '') {
+        $query->fieldCondition('field_quarter', 'value', $field_quarter, '=');
+    }
+    if ($field_factory != '') {
+        $query->fieldCondition('field_factory', 'target_id', $field_factory, '=');
+    }
+    if ($field_language != '') {
+        $query->fieldCondition('field_language', 'value', $field_language, '=');
+    }
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    if (!empty($items)) {
+        form_set_error('field_quarter', t('Year & Quarter & Factory & Language must be unique.'));
+    }
+}
+
+function elsayed_financial_additions_validate(&$form, &$form_state) {
+    $nid = 0;
+    if (isset($form_state['values']['nid'])) {
+        if ($form_state['values']['nid'] != '') {
+            $nid = $form_state['values']['nid'];
+        }
+    }
+    $field_financial_type = '';
+    if (isset($form_state['input']['field_financial_type'][LANGUAGE_NONE])) {
+        $field_financial_type = $form_state['input']['field_financial_type'][LANGUAGE_NONE];
+    }
+    $field_year = '';
+    if (isset($form_state['input']['field_year'][LANGUAGE_NONE][0]['value'])) {
+        $field_year = $form_state['input']['field_year'][LANGUAGE_NONE][0]['value']['year'];
+    }
+    $field_factory = '';
+    if (isset($form_state['input']['field_factory'][LANGUAGE_NONE])) {
+        $field_factory = $form_state['input']['field_factory'][LANGUAGE_NONE];
+    }
+    $field_language = '';
+    if (isset($form_state['input']['field_language'][LANGUAGE_NONE])) {
+        $field_language = $form_state['input']['field_language'][LANGUAGE_NONE];
+    }
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'financial_additions')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    if ($nid != 0) {
+        $query->propertyCondition('nid', $nid, '<>');
+    }
+    if ($field_year != '') {
+        $query->fieldCondition('field_year', 'value', $field_year . '-01-01 00:00:00', '=');
+    }
+    if ($field_financial_type != '') {
+        $query->fieldCondition('field_financial_type', 'value', $field_financial_type, '=');
+    }
+    if ($field_factory != '') {
+        $query->fieldCondition('field_factory', 'target_id', $field_factory, '=');
+    }
+    if ($field_language != '') {
+        $query->fieldCondition('field_language', 'value', $field_language, '=');
+    }
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    if (!empty($items)) {
+        form_set_error('field_financial_type', t('Year & Type & Factory & Language must be unique.'));
+    }
+}
+
+function elsayed_get_financial_types() {
+    $field = field_info_field('field_financial_type');
+    $allowed_values = $field['settings']['allowed_values'];
+    return $allowed_values;
+}
+
+function elsayed_get_financial_additions($year, $type = '') {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'financial_additions')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC')
+            ->fieldCondition('field_year', 'value', $year . '-01-01 00:00:00', '=');
+    if ($type != '') {
+        $query->fieldCondition('field_financial_type', 'value', $type, '=');
+    }
+    $current_factory_id = elsayed_get_current_factory();
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_form_node_delete_confirm_alter(&$form, $form_state) {
+    if (isset($form['nid']['#value'])) {
+        $node = node_load($form['nid']['#value']);
+        if (isset($node->type)) {
+            if ($node->type == 'page' || $node->type == 'factory') {
+                drupal_set_message(t("You can't delete this content.") . "\n", 'error');
+                $base_url_with_lang = elsayed_get_base_url_with_lang();
+                $redirect = $base_url_with_lang . '/admin/content';
+                drupal_goto("$redirect");
+            }
+        }
+    }
+}
+
+function elsayed_get_who_us() {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'page')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('nid', 'ASC');
+    $query->addMetaData('account', user_load(1));
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    $item = array();
+    if (!empty($items)) {
+        reset($items);
+        $first_key = key($items);
+        $item = $items[$first_key];
+    }
+    return $item;
+}
+
+function elsayed_get_factories() {
+    $start = 0;
+    $limit = 3;
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'factory')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'ASC');
+    $query->addMetaData('account', user_load(1));
+    $query->range($start, $limit);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    return $items;
+}
+
+function elsayed_get_main_factory() {
+    if (!isset($GLOBALS['main_factory'])) {
+        $factories = elsayed_get_factories();
+        reset($factories);
+        $first_key = key($factories);
+        $GLOBALS['main_factory'] = $factories[$first_key];
+        return $GLOBALS['main_factory'];
+    } else {
+        return $GLOBALS['main_factory'];
+    }
+}
+
+function elsayed_get_not_main_factories_ids() {
+    if (!isset($GLOBALS['not_main_factories_ids'])) {
+        $factories = elsayed_get_factories();
+        reset($factories);
+        $first_key = key($factories);
+        $not_main_factories_ids = array();
+        foreach ($factories as $key => $factory) {
+            if ($first_key == $key) {
+                continue;
+            }
+            $not_main_factories_ids[] = $factory->nid;
+        }
+        $GLOBALS['not_main_factories_ids'] = $not_main_factories_ids;
+        return $GLOBALS['not_main_factories_ids'];
+    } else {
+        return $GLOBALS['not_main_factories_ids'];
+    }
+}
+
+function elsayed_get_current_factory() {
+    $factory_id = 0;
+    $arg1 = arg(1);
+    if (isset($_GET['factory_id'])) {
+        if (is_numeric($_GET['factory_id']) && $_GET['factory_id'] > 0) {
+            $main_factory = elsayed_get_main_factory();
+            if ($_GET['factory_id'] != $main_factory->nid) {
+                $factory_id = $_GET['factory_id'];
+            }
+        }
+    } elseif (trim($arg1) != '') {
+        $node = node_load($arg1);
+        if ($node->type == 'factory') {
+            $factory_id = $arg1;
+        }
+    }
+    return $factory_id;
+}
+
+function elsayed_get_factory_url_addition($factory_id = '') {
+    $url_addition = '';
+    //if(trim($factory_id) == ''){
+    $factory_id = elsayed_get_current_factory();
+    //}
+    if ($factory_id > 0) {
+        $url_addition = '?factory_id=' . $factory_id;
+    }
+    return $url_addition;
+}
+
+function elsayed_get_actual_link() {
+    $https_string = elsayed_get_http_string();
+    $actual_link = $https_string . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    return $actual_link;
+}
+
+function elsayed_get_contact_us($current_factory_id = '') {
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'contact_us')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('nid', 'ASC');
+    $query->addMetaData('account', user_load(1));
+    //if(trim($current_factory_id) == ''){
+    $current_factory_id = elsayed_get_current_factory();
+    //}
+    if ($current_factory_id > 0) {
+        $query->fieldCondition('field_factory', 'target_id', $current_factory_id, '=');
+    } else {
+        $main_factory = elsayed_get_main_factory();
+        $query->fieldCondition('field_factory', 'target_id', $main_factory->nid, '=');
+    }
+    $sitelang = elsayed_get_language_from_url();
+    $query->fieldCondition('field_language', 'value', $sitelang, '=');
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    $item = array();
+    if (!empty($items)) {
+        reset($items);
+        $first_key = key($items);
+        $item = $items[$first_key];
+    }
+    return $item;
+}
+
+function elsayed_get_factory_body($factory = array()) {
+    $sitelang = elsayed_get_language_from_url();
+    $body = '';
+    if (isset($factory->body)) {
+        $body = elsayed_get_node_field_value('body', $factory);
+    }
+    if ($sitelang == 'en') {
+        if (isset($factory->field_body_en[LANGUAGE_NONE][0]['value'])) {
+            if (trim($factory->field_body_en[LANGUAGE_NONE][0]['value']) != '') {
+                $body = $factory->field_body_en[LANGUAGE_NONE][0]['value'];
+            }
+        }
+    }
+    return $body;
+}
+
+function elsayed_get_item_title($item = array()) {
+    $sitelang = elsayed_get_language_from_url();
+    $title = '';
+    if (isset($item->title)) {
+        $title = $item->title;
+    }
+    if ($sitelang == 'en') {
+        if (isset($item->field_title_en[LANGUAGE_NONE][0]['value'])) {
+            if (trim($item->field_title_en[LANGUAGE_NONE][0]['value']) != '') {
+                $title = $item->field_title_en[LANGUAGE_NONE][0]['value'];
+            }
+        }
+    }
+    return $title;
+}
+
+function elsayed_page_validate(&$form, &$form_state) {
+    $nid = 0;
+    if (isset($form_state['values']['nid'])) {
+        if ($form_state['values']['nid'] != '') {
+            $nid = $form_state['values']['nid'];
+        }
+    }
+    $field_language = '';
+    if (isset($form_state['input']['field_language'][LANGUAGE_NONE])) {
+        $field_language = $form_state['input']['field_language'][LANGUAGE_NONE];
+    }
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'page')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    if ($nid != 0) {
+        $query->propertyCondition('nid', $nid, '<>');
+    }
+    if ($field_language != '') {
+        $query->fieldCondition('field_language', 'value', $field_language, '=');
+    }
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    if (!empty($items)) {
+        form_set_error('field_language', t('Language must be unique.'));
+    }
+}
+
+function elsayed_contact_us_validate(&$form, &$form_state) {
+    $nid = 0;
+    if (isset($form_state['values']['nid'])) {
+        if ($form_state['values']['nid'] != '') {
+            $nid = $form_state['values']['nid'];
+        }
+    }
+    $field_factory = '';
+    if (isset($form_state['input']['field_factory'][LANGUAGE_NONE])) {
+        $field_factory = $form_state['input']['field_factory'][LANGUAGE_NONE];
+    }
+    $field_language = '';
+    if (isset($form_state['input']['field_language'][LANGUAGE_NONE])) {
+        $field_language = $form_state['input']['field_language'][LANGUAGE_NONE];
+    }
+    $items = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'contact_us')
+            ->propertyCondition('status', 1)
+            ->propertyOrderBy('created', 'DESC');
+    if ($nid != 0) {
+        $query->propertyCondition('nid', $nid, '<>');
+    }
+    if ($field_factory != '') {
+        $query->fieldCondition('field_factory', 'target_id', $field_factory, '=');
+    }
+    if ($field_language != '') {
+        $query->fieldCondition('field_language', 'value', $field_language, '=');
+    }
+    $query->addMetaData('account', user_load(1));
+    $result = $query->execute();
+    if (isset($result['node'])) {
+        $items_nids = array_keys($result['node']);
+        $items = entity_load('node', $items_nids);
+    }
+    if (!empty($items)) {
+        form_set_error('field_quarter', t('Factory & Language must be unique.'));
+    }
+}
+
+function elsayed_set_default_factory_language_to_all_nodes() {
+    $items = db_query("SELECT *
+                    FROM {node} n", array())->fetchAll();
+    foreach ($items as $key => $item) {
+        $node = node_load($item->nid);
+        $node->field_factory[LANGUAGE_NONE][0]['target_id'] = 70;
+        $node->field_language[LANGUAGE_NONE][0]['value'] = 'ar';
+        node_save($node);
+    }
+}
+
+function elsayed_change_locale_custom_strings_all() {
+    $sitelang = elsayed_get_language_from_url();
+    $custom_strings = variable_get('locale_custom_strings_' . $sitelang, array());
+    $data = elsayed_get_core_translations($sitelang);
+    foreach ($data as $key => $value) {
+        $custom_strings[''][$key] = $value;
+    }
+    variable_set('locale_custom_strings_' . $sitelang, $custom_strings);
+}
+
+function elsayed_get_core_translations($sitelang) {
+    $keys = array(
+        'منتجات الشركة' => 'Products',
+        'مشاريع الشركة' => 'Projects',
+        'علاقات المستثمرين' => 'Investor Relations',
+        'الرئيسية' => 'Home',
+        'أرشيف الصور' => 'Albums',
+        'المصانع' => 'Factories',
+        'المنتجات' => 'Products',
+        'الصور' => 'Albums',
+        'الاسم' => 'Name',
+        'ادخل الاسم' => 'Enter your name',
+        'البريد الالكتروني' => 'Email',
+        'ادخل البريد الالكتروني' => 'Enter your email',
+        'الموضوع' => 'Subject',
+        'ادخل الموضوع' => 'Enter your subject',
+        'الرسالة' => 'Message',
+        'ادخل الرسالة' => 'Enter your message',
+        'ارسل' => 'Send',
+        'نحن هنا' => 'We are here',
+        'العنوان' => 'Address',
+        'المزيد' => 'more',
+        'منتجات الشركة' => 'Company Products',
+    );
+    $data = array();
+    foreach ($keys as $key => $value) {
+        if ($sitelang == 'en') {
+            $data[$key] = $value;
+        } else {
+            $data[$key] = $key;
+        }
+    }
+    return $data;
+}
+
+function elsayed_redirect_www_to_non_www() {
+    $http_host = $_SERVER['HTTP_HOST'];
+    $www_string = 'www.';
+    if (strpos($http_host, $www_string) !== FALSE) {
+        $actual_link = elsayed_get_actual_link();
+        $redirect = str_replace($www_string, '', $actual_link);
+        drupal_goto("$redirect");
+    }
+}
+
+function elsayed_query_random_alter($query) {
+    $query->orderRandom();
+}

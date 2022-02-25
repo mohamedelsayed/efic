@@ -1,0 +1,31 @@
+.col-sm-3, .col-md-3, .col-md-12, .col-sm-7, .col-sm-5{
+	float: right;
+}
+.page-title-container i{
+	float: right;
+}
+.page-title-container h1{
+	float: right;
+	margin-top: 5px;
+}
+.contact-us-container{
+	text-align: right;
+}
+input[type="text"], textarea{
+	direction: rtl;
+}
+#sendmail_ajaxLoading{
+	float: right;
+}
+.ajax_result_sendmail{
+    float:right;
+}       
+.work p{
+	direction: rtl;
+}
+.navbar-header{
+	float: right;
+}
+.header_menu{
+	float: left;
+}

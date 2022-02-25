@@ -1,0 +1,6 @@
+.header, header, .mi-sidebar, footer, .header__countries-menu, .mi-show-for-large-up, .df-tab-menu, .market__chart {
+    display: none !important;
+}
+.mi-main-content{
+    width: 100% !important;
+}

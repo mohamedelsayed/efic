@@ -1,0 +1,9 @@
+.navbar-header{
+	float: left;
+}
+.header_menu{
+	float: right;
+}
+.navbar-nav > li{
+	float: right;
+}

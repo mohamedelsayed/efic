@@ -1,0 +1,80 @@
+name = Efic
+description = A Responsive theme.<br/> Developed by <a target="_blank" href="http://www.mohamedelsayed.net">Mohamed Elsayed</a>
+core = 7.x
+engine = phptemplate
+
+; STYLESHEETS
+;----------------------------------------------------
+stylesheets[all][] = libs/style.css
+stylesheets[all][] = libs/theme.css
+stylesheets[all][] = assets/bootstrap/css/bootstrap.min.css
+stylesheets[all][] = assets/font-awesome/css/font-awesome.min.css
+stylesheets[all][] = assets/css/animate.css
+stylesheets[all][] = assets/css/magnific-popup.css
+stylesheets[all][] = assets/flexslider/flexslider.css
+stylesheets[all][] = assets/css/form-elements.css
+stylesheets[all][] = assets/css/style.css
+stylesheets[all][] = assets/css/media-queries.css
+stylesheets[all][] = css/dev.css
+stylesheets[all][] = css/li-scroller.css
+; SCRIPTS
+;----------------------------------------------------
+scripts[] = assets/bootstrap/js/bootstrap.min.js
+scripts[] = assets/js/bootstrap-hover-dropdown.min.js
+scripts[] = assets/js/jquery.backstretch.min.js
+scripts[] = assets/js/wow.min.js
+scripts[] = assets/js/retina-1.1.0.min.js
+scripts[] = assets/js/jquery.magnific-popup.min.js
+scripts[] = assets/flexslider/jquery.flexslider-min.js
+scripts[] = assets/js/jflickrfeed.min.js
+scripts[] = assets/js/masonry.pkgd.min.js
+scripts[] = assets/js/jquery.ui.map.min.js
+scripts[] = assets/js/scripts.js
+scripts[] = libs/jquery.tickerNews.min.js
+scripts[] = js/jquery.li-scroller.1.0.js
+scripts[] = js/dev.js
+
+; REGIONS
+;----------------------------------------------------
+regions[content] = 'content'
+;regions[newsletter]  = newsletter
+;regions[sidebar]  = sidebar
+;regions[section]= section
+;regions[footer_firstcolumn] = Footer first column
+;regions[footer_secondcolumn] = Footer second column
+;regions[footer_thirdcolumn] = Footer third column
+;regions[home_page_forum]  = home page forum
+;regions[home_page_people]  = home page people
+;regions[home_page_blog]  = home page blog
+;regions[home_page_photos]  = home page photos
+;regions[home_page_videos]  = home page videos
+;regions[facebook]  = facebook
+;regions[twiter]  = twiter
+;regions[linkedin]  = linkedin
+;regions[youtube]  = youtube
+
+; FEATURES
+;----------------------------------------------------
+;features[] = logo
+;features[] = name
+;features[] = slogan
+;features[] = node_user_picture
+;features[] = comment_user_picture
+;features[] = comment_user_verification
+;features[] = favicon
+;features[] = main_menu
+;features[] = secondary_menu
+
+; SETTINGS
+;----------------------------------------------------
+;settings[breadcrumbs]  = 1
+;settings[display]      = 1
+;settings[sdisplay]      = 1
+;settings[twitter]      = "https://twitter.com/ankithinglajia"
+;settings[facebook]     = "http://www.facebook.com/ankithinglajia"
+;settings[linkedin]     = "http://in.linkedin.com/in/ankithinglajia"
+
+; Information added by Drupal.org packaging script on 2014-04-16
+version = "7.27"
+project = "drupal"
+datestamp = "1397687057"
